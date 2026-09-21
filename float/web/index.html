@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Float</title>
+<link rel="stylesheet" href="/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%231E3A32'/><circle cx='22' cy='11' r='3.2' fill='%23E8A33D'/></svg>">
+</head>
+<body>
+
+<!-- Float is driving the computer. Hard to miss, easy to stop. -->
+<div class="driving" id="driving" hidden>
+  <span class="ring"></span>
+  <span class="spacer col"><b id="driving-what">Float is using your computer</b><small id="driving-step"></small></span>
+  <button class="btn ghost" id="driving-stop">Stop &nbsp;<kbd>Esc</kbd></button>
+</div>
+
+<div class="shell">
+
+  <!-- ------------------------------------------------------------- rail -->
+  <nav class="rail" id="rail" aria-label="Your work">
+    <div class="rail-top">
+      <div class="wordmark">Float<span class="wordmark-dot"></span></div>
+      <div class="school-tag" id="school-tag"></div>
+    </div>
+
+    <button class="rail-new" id="new-thread">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      New conversation
+    </button>
+
+    <div class="rail-nav">
+      <button class="rail-link" data-panel="toolkit">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Toolkit <span class="count" id="count-kit"></span>
+      </button>
+      <button class="rail-link" data-panel="classes">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="5.5" cy="6" r="2.2" stroke="currentColor" stroke-width="1.3"/><circle cx="11" cy="6.6" r="1.7" stroke="currentColor" stroke-width="1.3"/><path d="M1.8 13c.4-2.2 1.9-3.3 3.7-3.3S8.8 10.8 9.2 13M9.8 9.9c1.6-.3 3.2.6 3.6 3.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Classes <span class="count" id="count-classes"></span>
+      </button>
+      <button class="rail-link" data-panel="tasks">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3 8.4 6 11.4 13 4.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        To do <span class="count" id="count-tasks"></span>
+      </button>
+      <button class="rail-link" data-panel="files">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3.5 2h5l4 4v8H3.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.5 2v4h4" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        Files <span class="count" id="count-files"></span>
+      </button>
+    </div>
+
+    <div class="rail-heading">Recent</div>
+    <div class="rail-scroll" id="threads"></div>
+
+    <div class="rail-foot">
+      <button class="rail-foot-name" id="open-settings">
+        <span class="avatar" id="me-avatar">T</span>
+        <span class="grow">
+          <b id="me-name">Teacher</b>
+          <small id="me-sub">Settings</small>
+        </span>
+      </button>
+      <button class="icon-btn" id="open-admin" title="Admin panel" hidden aria-label="Admin panel">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M8 1.8 13.5 4v4c0 3-2.3 5.3-5.5 6.2C4.8 13.3 2.5 11 2.5 8V4z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="icon-btn" id="sign-out" title="Sign out" aria-label="Sign out">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M6 2.5H3.2v11H6M9.5 8h5M12.3 5.6 14.7 8l-2.4 2.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ------------------------------------------------------------- main -->
+  <main class="main">
+
+    <header class="topbar">
+      <button class="icon-btn only-small" id="rail-toggle" aria-label="Menu">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="chip" id="chip-thread" hidden><span id="chip-thread-title"></span></div>
+      <span class="spacer"></span>
+
+      <button class="chip" id="chip-assist" title="How much Float does for you">
+        <span class="dot"></span><span id="assist-label">Draft</span>
+      </button>
+      <button class="chip" id="chip-model" title="Which model answers you">
+        <span id="model-label">No key yet</span>
+      </button>
+      <button class="icon-btn" id="toggle-theme" aria-label="Light or dark">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M13 9.4A5.2 5.2 0 0 1 6.6 3 5.5 5.5 0 1 0 13 9.4z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+      </button>
+    </header>
+
+    <div class="notice-strip" id="notice-strip" hidden></div>
+
+    <div class="stream" id="stream">
+      <div class="column">
+
+      <!-- The welcome. Rendered once per sign-in, then it scrolls away. -->
+      <section class="greeting" id="greeting">
+        <div class="greeting-date" id="g-date"></div>
+        <h2 id="g-headline">Good morning.</h2>
+        <p class="detail" id="g-detail"></p>
+        <p class="opener" id="g-opener"></p>
+
+        <div class="reflection" id="reflection" hidden>
+          <b>This week</b>
+          <span id="reflection-text"></span>
+        </div>
+
+        <div class="quick" id="quick"></div>
+      </section>
+
+        <div id="turns"></div>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------- composer -->
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="composer-bar" id="attach-bar" hidden></div>
+        <textarea id="input" rows="1" placeholder="Ask Float, or describe what you need…"
+                  aria-label="Message Float"></textarea>
+        <div class="composer-bar">
+          <button class="icon-btn" id="attach" title="Attach a photo of the board, a PDF, a text file" aria-label="Attach">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M10.6 5.2 5.9 9.9a1.7 1.7 0 0 0 2.4 2.4l5-5a3.1 3.1 0 1 0-4.4-4.4l-5 5a4.5 4.5 0 0 0 6.4 6.4l4.2-4.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <input type="file" id="file-input" hidden multiple
+                 accept="image/*,.pdf,.txt,.md,.csv">
+          <button class="icon-btn" id="open-toolkit" title="Toolkit" aria-label="Toolkit">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><rect x="2.2" y="5" width="11.6" height="8.3" rx="1.4" stroke="currentColor" stroke-width="1.3"/><path d="M6 5V3.6c0-.5.4-.9.9-.9h2.2c.5 0 .9.4.9.9V5" stroke="currentColor" stroke-width="1.3"/></svg>
+          </button>
+          <span class="spacer"></span>
+          <span class="composer-note" id="composer-note"></span>
+          <button class="send" id="send" aria-label="Send">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2.6 13.4 13.4 8 2.6 2.6l1.9 5.4z" fill="currentColor"/></svg>
+          </button>
+        </div>
+      </div>
+      <p class="composer-note">
+        Float can be wrong about syllabus detail and page numbers. Your judgement is the point.
+      </p>
+    </div>
+  </main>
+
+  <!-- ------------------------------------------------------------ drawer -->
+  <div class="scrim" id="drawer-scrim" hidden></div>
+  <aside class="drawer" id="drawer" hidden aria-label="Panel">
+    <div class="drawer-head">
+      <h3 id="drawer-title">Toolkit</h3>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="drawer-close" aria-label="Close">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </aside>
+</div>
+
+<!-- -------------------------------------------------------------- modals -->
+<div class="modal-scrim" id="modal-scrim" hidden>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head">
+      <h3 id="modal-title">Settings</h3>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="modal-close" aria-label="Close">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

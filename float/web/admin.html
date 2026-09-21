@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Admin · Float</title>
+<link rel="stylesheet" href="/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%231E3A32'/><circle cx='22' cy='11' r='3.2' fill='%23E8A33D'/></svg>">
+</head>
+<body>
+
+<header class="topbar" style="position:sticky;top:0;z-index:20">
+  <div class="wordmark" style="font-size:19px">Float<span class="wordmark-dot"></span></div>
+  <span class="chip" style="border:0;background:none;color:var(--soft)">Admin</span>
+  <span class="spacer"></span>
+  <button class="chip" id="back-app">Back to Float</button>
+  <button class="icon-btn" id="toggle-theme" aria-label="Light or dark">
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M13 9.4A5.2 5.2 0 0 1 6.6 3 5.5 5.5 0 1 0 13 9.4z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+  </button>
+</header>
+
+<div class="tabs" id="tabs" style="padding:0 28px"></div>
+
+<main class="admin-wrap" id="wrap">
+  <div class="empty" style="padding-top:14vh"><b>Loading…</b></div>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="/admin.js"></script>
+</body>
+</html>

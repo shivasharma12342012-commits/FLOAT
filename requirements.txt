@@ -1,0 +1,10 @@
+# Float runs on nothing but the Python standard library.
+# Everything below is optional — install only what you want.
+
+# Encrypts saved API keys with AES-256-GCM instead of the stdlib fallback.
+# Strongly recommended.
+cryptography>=42.0
+
+# Lets Float move the mouse and type for you (the "use the computer" tool).
+# Not needed if you never plan to use that feature.
+pyautogui>=0.9.54
