@@ -54,6 +54,15 @@
 
 * { box-sizing: border-box; }
 
+/* Every component below sets its own `display` for layout (flex, grid,
+   inline-flex…). Author CSS always outranks the browser's built-in
+   [hidden]{display:none} rule, no matter how specific the component's
+   selector is — so without this, setting el.hidden = true in JS silently
+   does nothing on any element whose class also declares `display`. This
+   one rule restores the attribute's normal behaviour everywhere at once:
+   the modal, the drawer, toasts, the computer-control banner, all of it. */
+[hidden] { display: none !important; }
+
 html, body {
   height: 100%;
   margin: 0;
