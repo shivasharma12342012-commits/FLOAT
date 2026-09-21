@@ -1,19 +1,17 @@
-' Start Float.vbs
-'
-' Double-click this. No black window, no console, nothing to close —
-' just the browser opening to Float a moment later.
-'
-' It works by handing off to "Start Float.bat" in this same folder,
-' but running it invisibly (the 0 below is the "hidden window" flag).
-' All the real logic — finding Python, installing requirements the
-' first time, launching the app — lives in the .bat, which is easier
-' to read and edit than VBScript.
+Option Explicit
 
+' Float launcher
+' Creates a desktop shortcut with Float's icon and launches Float silently.
+
+Dim fso, shell, folder, batPath, iconPath, desktop, shortcutPath, shortcut
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set shell = CreateObject("WScript.Shell")
 
 folder = fso.GetParentFolderName(WScript.ScriptFullName)
 batPath = folder & "\Start Float.bat"
+iconPath = folder & "\float.ico"
+desktop = shell.SpecialFolders("Desktop")
+shortcutPath = desktop & "\Float.lnk"
 
 If Not fso.FileExists(batPath) Then
     MsgBox "Float can't find 'Start Float.bat'." & vbCrLf & vbCrLf & _
@@ -22,6 +20,27 @@ If Not fso.FileExists(batPath) Then
     WScript.Quit 1
 End If
 
-' 0 = hidden window, False = don't wait for it to finish (so this
-' script can exit immediately and nothing lingers in your taskbar).
+If Not fso.FileExists(iconPath) Then
+    MsgBox "Float can't find 'float.ico'." & vbCrLf & vbCrLf & _
+           "The launcher cannot create the custom icon without it.", _
+           vbCritical, "Float"
+    WScript.Quit 1
+End If
+
+' Create/update a normal Windows desktop shortcut.
+' The BAT stays in the application folder because it depends on the
+' rest of the Float files being beside it.
+Set shortcut = shell.CreateShortcut(shortcutPath)
+shortcut.TargetPath = batPath
+shortcut.WorkingDirectory = folder
+shortcut.IconLocation = iconPath & ",0"
+shortcut.Description = "Start Float"
+shortcut.WindowStyle = 7
+shortcut.Save
+
+' Launch the BAT invisibly, just like the original VBS launcher.
 shell.Run """" & batPath & """", 0, False
+
+Set shortcut = Nothing
+Set shell = Nothing
+Set fso = Nothing
