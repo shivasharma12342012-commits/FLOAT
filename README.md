@@ -49,7 +49,7 @@ It also tries hard not to make you worse at your job. An assistant that quietly 
 You need **Python 3.10 or later**. Nothing else is required — Float runs entirely on the standard library.
 
 ```bash
-git clone <your-repo-url> float
+git clone https://github.com/shivasharma12342012-commits/Float.git
 cd float
 pip install -r requirements.txt   # optional — see below
 python main.py
