@@ -264,7 +264,7 @@ def init() -> None:
 
 DEFAULT_ORG = {
     "school_name": config.settings.school_name,
-    "allowed_providers": json.dumps(["anthropic", "openai", "google"]),
+    "allowed_providers": json.dumps(["anthropic", "openai", "openrouter", "google"]),
     "computer_control": "1",
     "teacher_own_keys": "1",
     "monthly_paise_budget": "0",

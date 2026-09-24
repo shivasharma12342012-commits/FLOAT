@@ -1197,7 +1197,7 @@ function tabModels() {
     const input = document.createElement("input");
     input.type = "password";
     input.placeholder = "Paste the key here";
-    input.className = "mono";
+    input.className = "mono key-input";
     input.style.width = "100%";
     input.style.padding = "8px 11px";
     input.style.marginTop = "8px";
