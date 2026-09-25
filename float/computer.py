@@ -42,6 +42,14 @@ except Exception:
     pyautogui = None  # type: ignore
     HAVE_PYAUTOGUI = False
 
+try:  # pragma: no cover - only used for the Escape watcher
+    import keyboard  # type: ignore
+
+    HAVE_KEYBOARD = True
+except Exception:
+    keyboard = None  # type: ignore
+    HAVE_KEYBOARD = False
+
 #: Typing faster than this looks like a macro and trips some input fields.
 _TYPE_INTERVAL = 0.012
 #: How long the pointer takes to travel. Fast enough not to be tedious, slow
@@ -64,7 +72,7 @@ class Session:
 
 
 _current: Session | None = None
-_lock = threading.Lock()
+_lock = threading.RLock()
 _overlay: "_Overlay | None" = None
 
 
@@ -89,6 +97,15 @@ def screen_size() -> tuple[int, int]:
         return (0, 0)
 
 
+def _clamp(x: int, y: int) -> tuple[int, int]:
+    """Keep a target on-screen. A bad tool call should never send the pointer
+    off into a second monitor or a negative coordinate."""
+    width, height = screen_size()
+    if width <= 0 or height <= 0:
+        return x, y
+    return max(0, min(x, width - 1)), max(0, min(y, height - 1))
+
+
 # ---------------------------------------------------------------------------
 # The visible pointer
 # ---------------------------------------------------------------------------
@@ -98,6 +115,11 @@ class _Overlay:
     Tkinter, because it ships with Python. It runs on its own thread with its own
     event loop and is entirely optional: if the display refuses it, every method
     here becomes a no-op and the automation carries on without the visuals.
+
+    All the canvas item IDs (``_ring``, ``_dot``, ``_banner``, ``_banner_bg``)
+    are only ever touched on the Tk thread, inside jobs run by ``pump``. They are
+    initialised to ``None`` before the queue can receive anything, so a ``banner``
+    or ``move`` call from another thread can never see a half-constructed overlay.
     """
 
     def __init__(self, accent: str = "#E8A33D") -> None:
@@ -106,6 +128,10 @@ class _Overlay:
         self._queue: list[Callable[[], None]] = []
         self._queue_lock = threading.Lock()
         self._root = None
+        self._ring = None
+        self._dot = None
+        self._banner = None
+        self._banner_bg = None
         self._thread = threading.Thread(target=self._run, daemon=True, name="float-overlay")
         self._ready = threading.Event()
         self._thread.start()
@@ -130,10 +156,6 @@ class _Overlay:
 
             self._root, self._canvas = root, canvas
             self._width, self._height = width, height
-            self._ring = None
-            self._banner = None
-            self.ok = True
-            self._ready.set()
 
             def pump() -> None:
                 with self._queue_lock:
@@ -145,6 +167,10 @@ class _Overlay:
                         pass
                 root.after(16, pump)
 
+            # Only flip `ok` once the canvas genuinely exists and the pump is
+            # scheduled - a job posted a moment earlier just waits in the queue.
+            self.ok = True
+            self._ready.set()
             root.after(16, pump)
             root.mainloop()
         except Exception:
@@ -160,9 +186,9 @@ class _Overlay:
     def banner(self, text: str) -> None:
         def draw() -> None:
             canvas = self._canvas
-            if self._banner:
+            if self._banner is not None:
                 canvas.delete(self._banner)
-            if self._banner_bg:
+            if self._banner_bg is not None:
                 canvas.delete(self._banner_bg)
             width = self._width
             self._banner_bg = canvas.create_rectangle(
@@ -173,22 +199,20 @@ class _Overlay:
                 font=("Segoe UI", 11, "bold"),
             )
 
-        self._banner_bg = getattr(self, "_banner_bg", None)
         self._post(draw)
 
     def move(self, x: int, y: int) -> None:
         def draw() -> None:
             canvas = self._canvas
-            if self._ring:
+            if self._ring is not None:
                 canvas.delete(self._ring)
-            if self._dot:
+            if self._dot is not None:
                 canvas.delete(self._dot)
             self._ring = canvas.create_oval(
                 x - 22, y - 22, x + 22, y + 22, outline=self.accent, width=3
             )
             self._dot = canvas.create_oval(x - 4, y - 4, x + 4, y + 4, fill=self.accent, outline="")
 
-        self._dot = getattr(self, "_dot", None)
         self._post(draw)
 
     def flash(self, x: int, y: int) -> None:
@@ -215,18 +239,26 @@ class _Overlay:
 # Escape watcher
 # ---------------------------------------------------------------------------
 def _watch_for_escape(session: Session) -> None:
-    """Hold Escape for a moment to stop a run. Best effort, never required."""
-    try:
-        import tkinter as tk  # noqa: F401
-    except Exception:
+    """Watch for Escape and stop the run the moment it's pressed.
+
+    Best effort, never required — the stop button and the API both work
+    without this. Needs the optional ``keyboard`` package; without it (or
+    without permission to hook the keyboard, which some Linux/macOS setups
+    require running as root for) this simply does nothing, same as before,
+    and the explicit stop controls remain the only way to interrupt a run.
+    """
+    if not HAVE_KEYBOARD:
         return
-    while not session.stop.is_set():
-        try:
-            if HAVE_PYAUTOGUI and hasattr(pyautogui, "keyDown"):
-                pass
-        except Exception:
-            pass
-        time.sleep(0.25)
+    try:
+        while not session.stop.is_set():
+            if keyboard.is_pressed("esc"):
+                session.stop.set()
+                return
+            time.sleep(0.05)
+    except Exception:
+        # Some platforms need elevated privileges for global key hooks;
+        # fail silently and leave the explicit stop controls as the way in.
+        return
 
 
 # ---------------------------------------------------------------------------
@@ -241,6 +273,8 @@ def begin(user_id: int, user_name: str, intent: str, accent: str = "#E8A33D") ->
         _current = session
         _overlay = _Overlay(accent)
         _overlay.banner(f"Float is using your computer — {intent[:60]}   ·   press Esc to stop")
+        threading.Thread(target=_watch_for_escape, args=(session,),
+                         daemon=True, name="float-escape-watch").start()
     db.audit("computer.begin", user_id=user_id, actor=user_name, detail=intent, level="warn")
     return session
 
@@ -266,12 +300,14 @@ def end(note: str = "finished") -> None:
 def stop_current() -> bool:
     with _lock:
         session = _current
-    if session is None:
-        return False
-    session.stop.set()
-    db.audit("computer.stop", user_id=session.user_id, actor=session.user_name,
-             detail="stopped by the teacher", level="warn")
-    end("stopped by the teacher")
+        if session is None:
+            return False
+        session.stop.set()
+        db.audit("computer.stop", user_id=session.user_id, actor=session.user_name,
+                 detail="stopped by the teacher", level="warn")
+        # Still holding the lock, so no other thread can sneak a new
+        # `begin()` in between the flag being set and the session closing.
+        end("stopped by the teacher")
     return True
 
 
@@ -305,7 +341,7 @@ def _note(session: Session, text: str) -> None:
 def _glide(session: Session, x: int, y: int) -> None:
     """Move Float's pointer to the target, visibly, then take the system one with it."""
     _guard(session)
-    if _overlay:
+    if _overlay and _overlay.ok:
         start = pyautogui.position() if HAVE_PYAUTOGUI else (x, y)
         steps = 18
         for i in range(1, steps + 1):
@@ -326,27 +362,27 @@ def act(session: Session, action: str, **kwargs: Any) -> str:
     if not ok:
         raise RuntimeError(reason)
 
-    width, height = screen_size()
-
     if action == "move":
-        x, y = int(kwargs["x"]), int(kwargs["y"])
+        x, y = _clamp(int(kwargs["x"]), int(kwargs["y"]))
         _glide(session, x, y)
         _note(session, f"moved to {x}, {y}")
 
     elif action in {"click", "double_click", "right_click"}:
-        x, y = int(kwargs.get("x", -1)), int(kwargs.get("y", -1))
-        if x >= 0 and y >= 0:
+        raw_x, raw_y = int(kwargs.get("x", -1)), int(kwargs.get("y", -1))
+        has_target = raw_x >= 0 and raw_y >= 0
+        x, y = _clamp(raw_x, raw_y) if has_target else (raw_x, raw_y)
+        if has_target:
             _glide(session, x, y)
-        if _overlay and x >= 0:
+        if _overlay and has_target:
             _overlay.flash(x, y)
         button = "right" if action == "right_click" else "left"
         clicks = 2 if action == "double_click" else 1
         pyautogui.click(button=button, clicks=clicks, interval=0.08)
-        _note(session, f"{action.replace('_', ' ')} at {x}, {y}" if x >= 0 else action)
+        _note(session, f"{action.replace('_', ' ')} at {x}, {y}" if has_target else action)
 
     elif action == "type":
         text = str(kwargs.get("text", ""))[:4000]
-        pyautogui.typewrite(text, interval=_TYPE_INTERVAL)
+        _type_text(text)
         preview = text[:40] + ("…" if len(text) > 40 else "")
         _note(session, f"typed “{preview}”")
 
@@ -390,6 +426,44 @@ def act(session: Session, action: str, **kwargs: Any) -> str:
     db.audit("computer.step", user_id=session.user_id, actor=session.user_name,
              detail=session.steps[-1] if session.steps else action)
     return session.steps[-1] if session.steps else action
+
+
+def _type_text(text: str) -> None:
+    """Type text that may contain characters outside pyautogui's known key set
+    (accents, Devanagari and other Indic scripts, emoji). ``typewrite`` silently
+    drops anything it doesn't recognise as a key, which used to mean a teacher's
+    name or a Hindi sentence would arrive with holes in it and no error shown.
+    Fall back to the clipboard-paste method for any character it can't type
+    directly, so nothing is silently lost."""
+    try:
+        pyautogui.typewrite(text, interval=_TYPE_INTERVAL)
+        return
+    except (KeyError, ValueError):
+        pass
+    try:
+        import pyperclip  # type: ignore
+
+        previous = None
+        try:
+            previous = pyperclip.paste()
+        except Exception:
+            previous = None
+        pyperclip.copy(text)
+        pyautogui.hotkey("ctrl", "v")
+        time.sleep(0.05)
+        if previous is not None:
+            try:
+                pyperclip.copy(previous)
+            except Exception:
+                pass
+    except Exception:
+        # No clipboard helper available either; type what we can character
+        # by character so at least the ASCII portion lands correctly.
+        for ch in text:
+            try:
+                pyautogui.typewrite(ch, interval=_TYPE_INTERVAL)
+            except Exception:
+                continue
 
 
 def _open_target(target: str) -> None:
