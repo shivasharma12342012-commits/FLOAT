@@ -882,6 +882,12 @@ table.grid td.num { text-align: right; font-variant-numeric: tabular-nums }
 .inline-note { font-size: 12.5px; color: var(--soft); line-height: 1.55; margin: 0 0 12px }
 .right { text-align: right }
 .mono { font: 13px var(--mono) }
+.key-input {
+  background: #fff !important;
+  color: #000 !important;
+  caret-color: #000;
+}
+.key-input::placeholder { color: #666 !important; }
 .key-shown {
   font: 13px var(--mono); background: var(--sage); border: 1px dashed var(--sage-deep);
   padding: 9px 12px; border-radius: var(--r-sm); user-select: all; word-break: break-all;

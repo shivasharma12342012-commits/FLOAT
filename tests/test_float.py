@@ -219,6 +219,7 @@ class ServerTests(unittest.TestCase):
                     "providers", "options", "capabilities", "usage", "own_work"):
             self.assertIn(key, data)
         self.assertEqual(len(data["toolkit"]), 19)
+        self.assertIn("openrouter", {p["id"] for p in data["providers"]})
 
     def test_04_class_roster_parses_from_free_text(self):
         status, data = self.call("/api/classes", {

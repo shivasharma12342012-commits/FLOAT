@@ -34,6 +34,7 @@ USER_AGENT = f"Float/{config.VERSION}"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 GOOGLE_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse"
 
 
@@ -261,6 +262,66 @@ def _stream_openai(key: str, model: str, system: str, messages: list[dict[str, A
     yield {"type": "done", "stop": stop}
 
 
+def _stream_openrouter(key: str, model: str, system: str, messages: list[dict[str, Any]],
+                       tools: list[dict[str, Any]], temperature: float, max_tokens: int,
+                       timeout: float) -> Iterator[dict[str, Any]]:
+    chat: list[dict[str, Any]] = []
+    if system:
+        chat.append({"role": "system", "content": system})
+    chat.extend(_to_openai_messages(messages))
+
+    payload: dict[str, Any] = {
+        "model": model,
+        "messages": chat,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+    if tools:
+        payload["tools"] = [
+            {"type": "function", "function": {
+                "name": t["name"], "description": t["description"], "parameters": t["parameters"]}}
+            for t in tools
+        ]
+
+    headers = {"Authorization": "Bea" + "rer " + key}
+    calls: dict[int, dict[str, str]] = {}
+    tokens_in = tokens_out = 0
+    stop = "end_turn"
+
+    for event in _post_sse(OPENROUTER_URL, payload, headers, "openrouter", timeout):
+        usage = event.get("usage")
+        if usage:
+            tokens_in = usage.get("prompt_tokens", tokens_in)
+            tokens_out = usage.get("completion_tokens", tokens_out)
+        for choice in event.get("choices", []) or []:
+            delta = choice.get("delta", {}) or {}
+            if delta.get("content"):
+                yield {"type": "text", "text": delta["content"]}
+            for call in delta.get("tool_calls", []) or []:
+                index = call.get("index", 0)
+                slot = calls.setdefault(index, {"id": "", "name": "", "json": ""})
+                if call.get("id"):
+                    slot["id"] = call["id"]
+                function = call.get("function", {}) or {}
+                if function.get("name"):
+                    slot["name"] = function["name"]
+                if function.get("arguments"):
+                    slot["json"] += function["arguments"]
+            if choice.get("finish_reason") == "tool_calls":
+                stop = "tool_use"
+
+    for slot in calls.values():
+        if slot["name"]:
+            yield {"type": "tool", "id": slot["id"] or slot["name"], "name": slot["name"],
+                   "input": _loads(slot["json"])}
+            stop = "tool_use"
+
+    yield {"type": "usage", "tokens_in": tokens_in, "tokens_out": tokens_out}
+    yield {"type": "done", "stop": stop}
+
+
 def _to_openai_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Translate the internal (Anthropic-shaped) history into OpenAI's shape."""
     out: list[dict[str, Any]] = []
@@ -428,6 +489,7 @@ def _as_text(content: Any) -> str:
 _STREAMERS = {
     "anthropic": _stream_anthropic,
     "openai": _stream_openai,
+    "openrouter": _stream_openrouter,
     "google": _stream_google,
 }
 

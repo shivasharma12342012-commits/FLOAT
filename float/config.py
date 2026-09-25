@@ -143,10 +143,22 @@ PROVIDERS: dict[str, Provider] = {
             ModelSpec("gpt-4o-mini", "GPT-4o mini", 128_000, 12, 50, True),
         ),
     ),
+    "openrouter": Provider(
+        id="openrouter",
+        label="OpenRouter",
+        key_prefix="",
+        key_help="Create a key at openrouter.ai → Keys.",
+        console_url="https://openrouter.ai/settings/keys",
+        default_model="openrouter/auto",
+        models=(
+            ModelSpec("openrouter/auto", "OpenRouter Auto", 128_000, 0, 0, True),
+            ModelSpec("openai/gpt-4o-mini", "GPT-4o mini (via OpenRouter)", 128_000, 0, 0, True),
+        ),
+    ),
     "google": Provider(
         id="google",
         label="Google",
-        key_prefix="AIza",
+        key_prefix="",
         key_help="Create a key at aistudio.google.com → Get API key.",
         console_url="https://aistudio.google.com/app/apikey",
         default_model="gemini-2.0-flash",
@@ -159,7 +171,7 @@ PROVIDERS: dict[str, Provider] = {
 }
 
 #: Order the picker shows them in.
-PROVIDER_ORDER = ("anthropic", "openai", "google")
+PROVIDER_ORDER = ("anthropic", "openai", "openrouter", "google")
 
 
 # ----------------------------------------------------------------------------
