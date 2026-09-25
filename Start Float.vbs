@@ -28,10 +28,17 @@ If Not fso.FileExists(iconPath) Then
 End If
 
 ' Create/update a normal Windows desktop shortcut.
-' The BAT stays in the application folder because it depends on the
-' rest of the Float files being beside it.
+' The shortcut targets THIS .vbs (via wscript.exe), not the .bat directly.
+' Windows always flashes a console for a split second when a .bat is
+' launched on its own, even from a shortcut set to "minimized" - routing
+' through wscript.exe is what keeps the launch fully silent, exactly like
+' running this .vbs by hand does.
+Dim wscriptPath
+wscriptPath = shell.ExpandEnvironmentStrings("%WINDIR%") & "\System32\wscript.exe"
+
 Set shortcut = shell.CreateShortcut(shortcutPath)
-shortcut.TargetPath = batPath
+shortcut.TargetPath = wscriptPath
+shortcut.Arguments = """" & WScript.ScriptFullName & """"
 shortcut.WorkingDirectory = folder
 shortcut.IconLocation = iconPath & ",0"
 shortcut.Description = "Start Float"
