@@ -256,11 +256,6 @@ Run `Start Float.bat` directly instead of the `.vbs` shortcut — that one shows
 
 <br>
 
-## License
-
-No license file is included yet. If you plan to share this project beyond your own school, add one — [choosealicense.com](https://choosealicense.com) is a good starting point.
-
----
 
 <div align="center">
 
